@@ -47,6 +47,7 @@ public class CharacterController2D : MonoBehaviour {
 	bool facingRight = true;
 	bool isGrounded = false;
 	bool isRunning = false;
+	bool canDoubleJump = false;
 
 	// store the layer the player is on (setup in Awake)
 	int _playerLayer;
@@ -107,24 +108,28 @@ public class CharacterController2D : MonoBehaviour {
 		// Check to see if character is grounded by raycasting from the middle of the player
 		// down to the groundCheck position and see if collected with gameobjects on the
 		// whatIsGround layer
-		isGrounded = Physics2D.Linecast(_transform.position, groundCheck.position, whatIsGround);  
+		isGrounded = Physics2D.Linecast(_transform.position, groundCheck.position, whatIsGround);
+		if (isGrounded)
+        {
+			canDoubleJump = true;
+        }
 
 		// Set the grounded animation states
 		_animator.SetBool("Grounded", isGrounded);
 
 		if(isGrounded && Input.GetButtonDown("Jump")) // If grounded AND jump button pressed, then allow the player to jump
-		{
-			// reset current vertical motion to 0 prior to jump
-			_vy = 0f;
-			// add a force in the up direction
-			_rigidbody.AddForce (new Vector2 (0, jumpForce));
-			// play the jump sound
-			PlaySound(jumpSFX);
-		}
-	
-		// If the player stops jumping mid jump and player is not yet falling
-		// then set the vertical velocity to 0 (he will start to fall from gravity)
-		if(Input.GetButtonUp("Jump") && _vy>0f)
+        {
+            DoJump();
+        }
+		else if (canDoubleJump && Input.GetButtonDown("Jump"))
+        {
+			DoJump();
+			canDoubleJump = false;
+        }
+
+        // If the player stops jumping mid jump and player is not yet falling
+        // then set the vertical velocity to 0 (he will start to fall from gravity)
+        if (Input.GetButtonUp("Jump") && _vy>0f)
 		{
 			_vy = 0f;
 		}
@@ -138,10 +143,20 @@ public class CharacterController2D : MonoBehaviour {
 		Physics2D.IgnoreLayerCollision(_playerLayer, _platformLayer, (_vy > 0.0f)); 
 	}
 
-	// Checking to see if the sprite should be flipped
-	// this is done in LateUpdate since the Animator may override the localScale
-	// this code will flip the player even if the animator is controlling scale
-	void LateUpdate()
+    private void DoJump()
+    {
+        // reset current vertical motion to 0 prior to jump
+        _vy = 0f;
+        // add a force in the up direction
+        _rigidbody.AddForce(new Vector2(0, jumpForce));
+        // play the jump sound
+        PlaySound(jumpSFX);
+    }
+
+    // Checking to see if the sprite should be flipped
+    // this is done in LateUpdate since the Animator may override the localScale
+    // this code will flip the player even if the animator is controlling scale
+    void LateUpdate()
 	{
 		// get the current scale
 		Vector3 localScale = _transform.localScale;
